@@ -27,7 +27,7 @@ const createRating = catchAsync(
 
 
 
-//update profile
+//update Rating
 const updateRating = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
    
@@ -35,7 +35,7 @@ const updateRating = catchAsync(
       customer:req.user.id,
       ...req.body,
     };
-    const result = await RatingService.updateProfileToDB(req.params.id, data);
+    const result = await RatingService.updateRatingToDB(req.params.id, data);
 
     sendResponse(res, {
       success: true,

@@ -8,6 +8,7 @@ import { BookingRoutes } from '../app/modules/booking/booking.route';
 import { PortfolioRoutes } from '../app/modules/portfolio/portfolio.route';
 import { BookmarkRoutes } from '../app/modules/bookmark/bookmark.route';
 import { RatingRoutes } from '../app/modules/rating/rating.route';
+import { PaymentRoutes } from '../app/modules/payment/payment.route';
 const router = express.Router();
 
 const apiRoutes = [
@@ -46,6 +47,10 @@ const apiRoutes = [
    {
     path: '/rating',
     route: RatingRoutes,
+  },
+   {
+    path: '/create-payment-intent',
+    route: PaymentRoutes,
   },
 ];
 

@@ -22,7 +22,7 @@ router
     RatingController.updateRating
   )
   .delete(
-    auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+    auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.CUSTOMAR),
     RatingController.deleteRating
   );
 

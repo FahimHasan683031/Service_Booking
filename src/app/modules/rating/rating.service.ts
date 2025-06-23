@@ -8,7 +8,7 @@ import { TRating } from './rating.interface';
 
 
 
-
+// create Rating
 export const createRatingToDB = async (payload: Partial<TRating>) => {
   const { service } = payload;
 
@@ -87,25 +87,12 @@ export const createRatingToDB = async (payload: Partial<TRating>) => {
 
 
 
-
-export const updateProfileToDB = async (
-  ratingId: string,
-  updatePayload: Partial<TRating>
-) => {
+// Update Rating
+const updateRatingToDB = async (ratingId: string, updatePayload: Partial<TRating>) => {
   const session = await mongoose.startSession();
 
   try {
     session.startTransaction();
-
-    // Find the existing rating
-    const existingRating = await Rating.findOne({
-      _id: ratingId,
-      customer: updatePayload.customer,
-    });
-
-    if (!existingRating) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Rating not found or unauthorized');
-    }
 
     // Update the rating
     const updatedRating = await Rating.findByIdAndUpdate(
@@ -118,7 +105,7 @@ export const updateProfileToDB = async (
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to update rating');
     }
 
-    // Recalculate avg and total rating
+    // Aggregate rating stats using the same session
     const aggResult = await Rating.aggregate([
       { $match: { service: updatedRating.service } },
       {
@@ -128,11 +115,12 @@ export const updateProfileToDB = async (
           totalReviews: { $sum: 1 },
         },
       },
-    ]);
+    ]).session(session); 
 
     const ratingData = aggResult[0];
 
-   const serData= await Service.findByIdAndUpdate(
+    // Update service with new rating stats
+    const updatedService = await Service.findByIdAndUpdate(
       updatedRating.service,
       {
         $set: {
@@ -143,11 +131,16 @@ export const updateProfileToDB = async (
       { new: true, session }
     );
 
+    if (!updatedService) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to update service with new rating stats');
+    }
+
     await session.commitTransaction();
-    return {updatedRating,serData};
+
+    return updatedRating;
   } catch (error: any) {
     await session.abortTransaction();
-    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Failed to update rating');
   } finally {
     session.endSession();
   }
@@ -158,22 +151,75 @@ export const updateProfileToDB = async (
 
 
 
+
 // delete Rating
-const deleteRating = async (
-  id: string,
-) => {
-  const isExistRating = await Rating.findById(id);
-  if (!isExistRating) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Rating doesn't exist!");
+const deleteRating = async (ratingId: string) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    // Find the rating to get serviceId before deleting
+    const rating = await Rating.findById(ratingId).session(session);
+    if (!rating) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Rating not found');
+    }
+
+    const serviceId = rating.service;
+
+    // Delete the rating
+    const deletedRating = await Rating.findByIdAndDelete(ratingId, { session });
+    if (!deletedRating) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to delete rating');
+    }
+
+    // Remove ratingId from the service.ratings array
+    await Service.findByIdAndUpdate(
+      serviceId,
+      { $pull: { ratings: ratingId } },
+      { session }
+    );
+
+    // Recalculate averageRating and totalReviews using session
+    const aggResult = await Rating.aggregate([
+      { $match: { service: new mongoose.Types.ObjectId(serviceId) } },
+      {
+        $group: {
+          _id: '$service',
+          averageRating: { $avg: '$rating' },
+          totalReviews: { $sum: 1 },
+        },
+      },
+    ]).session(session);
+
+    const ratingStats = aggResult[0];
+
+    // Update service with new stats
+    const updatedService = await Service.findByIdAndUpdate(
+      serviceId,
+      {
+        $set: {
+          averageRating: ratingStats?.averageRating || 0,
+          totalReviews: ratingStats?.totalReviews || 0,
+        },
+      },
+      { new: true, session }
+    );
+
+    await session.commitTransaction();
+
+    return deletedRating;
+  } catch (error: any) {
+    await session.abortTransaction();
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Failed to delete rating');
+  } finally {
+    session.endSession();
   }
-
-
-  const deleteRating = await Rating.deleteOne({ _id: id });
-  return deleteRating;
 };
+
 
 export const RatingService = {
   createRatingToDB,
-  updateProfileToDB,
+  updateRatingToDB,
   deleteRating
 };
