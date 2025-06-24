@@ -52,4 +52,17 @@ const updateProfile = catchAsync(
   }
 );
 
-export const UserController = { createUser, getUserProfile, updateProfile };
+
+// get all user
+const getAllUser= catchAsync (async (req: Request, res: Response) => {
+  const result = await UserService.getAllUserFromDB();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'All user retrieved successfully',
+    data: result,
+  });
+});
+
+export const UserController = { createUser, getUserProfile, updateProfile, getAllUser };

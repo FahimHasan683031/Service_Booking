@@ -9,6 +9,8 @@ import { PortfolioRoutes } from '../app/modules/portfolio/portfolio.route';
 import { BookmarkRoutes } from '../app/modules/bookmark/bookmark.route';
 import { RatingRoutes } from '../app/modules/rating/rating.route';
 import { PaymentRoutes } from '../app/modules/payment/payment.route';
+import { ChatRoutes } from '../app/modules/chat/chat.route';
+import { MessageRoutes } from '../app/modules/message/message.route';
 const router = express.Router();
 
 const apiRoutes = [
@@ -51,6 +53,14 @@ const apiRoutes = [
    {
     path: '/create-payment-intent',
     route: PaymentRoutes,
+  },
+   {
+    path: '/chat',
+    route: ChatRoutes,
+  },
+   {
+    path: '/message',
+    route: MessageRoutes,
   },
 ];
 

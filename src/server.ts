@@ -31,7 +31,8 @@ async function main() {
       );
     });
 
-    //socket
+
+    // ✅ server.ts (snippet for socket.io setup)
     const io = new Server(server, {
       pingTimeout: 60000,
       cors: {
@@ -41,6 +42,8 @@ async function main() {
     socketHelper.socket(io);
     //@ts-ignore
     global.io = io;
+
+
   } catch (error) {
     errorLogger.error(colors.red('🤢 Failed to connect Database'));
   }

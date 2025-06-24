@@ -80,8 +80,18 @@ const updateProfileToDB = async (
   return updateDoc;
 };
 
+
+const getAllUserFromDB = async () => {
+  const users = User.find()
+
+  return users;
+};
+
+
+
 export const UserService = {
   createUserToDB,
   getUserProfileFromDB,
   updateProfileToDB,
+  getAllUserFromDB
 };
