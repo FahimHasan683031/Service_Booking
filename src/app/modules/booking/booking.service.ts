@@ -64,6 +64,9 @@ const createBookingToDB = async (payload: Partial<IBooking>) => {
     }
     // Commit transaction
     await session.commitTransaction();
+
+    
+
     return createBooking;
 
   } catch (err: any) {
