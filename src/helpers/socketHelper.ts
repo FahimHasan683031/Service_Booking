@@ -1,18 +1,16 @@
-// ✅ socketHelper.ts
-import colors from 'colors';
-import { Server } from 'socket.io';
-import { logger } from '../shared/logger';
-import { Message } from '../app/modules/message/message.model';
-import { Notification } from '../app/modules/notification/notification.model';
+import colors from "colors";
+import { Server } from "socket.io";
+import { logger } from "../shared/logger";
 
-const socket = (io: Server) => {
-  io.on('connection', socket => {
-    logger.info(colors.green('🔗 A user connected'));
-    
-    socket.on('disconnect', () => {
-      logger.info(colors.red(' A user disconnected'));
-    });
-  });
-};
+const socket = (io: Server)=>{
+    io.on('connection', socket=>{
+        logger.info(colors.blue('A User connected'));
 
-export const socketHelper = { socket };
+        // disconnect
+        socket.on("disconnect", ()=>{
+            logger.info(colors.red('A user disconnect'));
+        })
+    })
+}
+
+export const socketHelper = { socket }

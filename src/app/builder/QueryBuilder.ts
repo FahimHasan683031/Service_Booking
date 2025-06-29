@@ -1,18 +1,18 @@
 import { FilterQuery, Query } from 'mongoose';
 
 class QueryBuilder<T> {
-  public modelQuery: Query<T[], T>;
+  public queryModel: Query<T[], T>;
   public query: Record<string, unknown>;
 
-  constructor(modelQuery: Query<T[], T>, query: Record<string, unknown>) {
-    this.modelQuery = modelQuery;
+  constructor(queryModel: Query<T[], T>, query: Record<string, unknown>) {
+    this.queryModel = queryModel;
     this.query = query;
   }
 
   // searching
   search(searchableFields: string[]) {
     if (this?.query?.searchTerm) {
-      this.modelQuery = this.modelQuery.find({
+      this.queryModel = this.queryModel.find({
         $or: searchableFields.map(
           field =>
             ({
@@ -59,7 +59,7 @@ class QueryBuilder<T> {
     }
 
     if (andConditions.length > 0) {
-      this.modelQuery = this.modelQuery.find({ $and: andConditions });
+      this.queryModel = this.queryModel.find({ $and: andConditions });
     }
 
     return this;
@@ -68,7 +68,7 @@ class QueryBuilder<T> {
   // sorting
   sort() {
     let sort = (this?.query?.sort as string) || '-createdAt';
-    this.modelQuery = this.modelQuery.sort(sort);
+    this.queryModel = this.queryModel.sort(sort);
     return this;
   }
 
@@ -77,7 +77,7 @@ class QueryBuilder<T> {
     let limit = Number(this?.query?.limit) || 10;
     let page = Number(this?.query?.page) || 1;
     let skip = (page - 1) * limit;
-    this.modelQuery = this.modelQuery.skip(skip).limit(limit);
+    this.queryModel = this.queryModel.skip(skip).limit(limit);
     return this;
   }
 
@@ -85,13 +85,13 @@ class QueryBuilder<T> {
   fields() {
     let fields =
       (this?.query?.fields as string)?.split(',').join(' ') || '-__v';
-    this.modelQuery = this.modelQuery.select(fields);
+    this.queryModel = this.queryModel.select(fields);
     return this;
   }
 
   // populating
   populate(populateFields: string[], selectFields: Record<string, unknown>) {
-    this.modelQuery = this.modelQuery.populate(
+    this.queryModel = this.queryModel.populate(
       populateFields.map(field => ({
         path: field,
         select: selectFields[field],
@@ -102,8 +102,8 @@ class QueryBuilder<T> {
 
   // pagination information
   async getPaginationInfo() {
-    const total = await this.modelQuery.model.countDocuments(
-      this.modelQuery.getFilter()
+    const total = await this.queryModel.model.countDocuments(
+      this.queryModel.getFilter()
     );
     const limit = Number(this?.query?.limit) || 10;
     const page = Number(this?.query?.page) || 1;

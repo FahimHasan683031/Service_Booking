@@ -1,9 +1,26 @@
-import express from "express";
-import { ChatController } from "./chat.controller";
+import express from 'express';
+import auth from '../../middlewares/auth';
+import { ChatController } from './chat.controller';
+import { USER_ROLES } from '../../../enums/user';
 const router = express.Router();
 
-router.post("/", ChatController.createChat);
-router.get("/:userId", ChatController.userChats);
-router.get("/find/:firstId/:secondId", ChatController.findChat);
+router.route("/")
+  .post(
+    auth(USER_ROLES.CUSTOMAR),
+    async (req, res, next) => {
+
+      try {
+        req.body = [req.user.id, ...req.body.participants];
+        next();
+      } catch (error) {
+        res.status(400).json({ message: "Failed to create chat" });
+      }
+    },
+    ChatController.createChat
+  )
+  .get(
+    auth(USER_ROLES.CUSTOMAR, USER_ROLES.PROVIDER),
+    ChatController.getChat
+  );
 
 export const ChatRoutes = router;

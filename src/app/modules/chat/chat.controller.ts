@@ -1,52 +1,33 @@
 import { Request, Response } from "express";
-import { Chat } from "./chat.model";
+import catchAsync from "../../../shared/catchAsync";
+import sendResponse from "../../../shared/sendResponse";
+import { StatusCodes } from "http-status-codes";
+import { ChatService } from "./chat.service";
+import { JwtPayload } from "jsonwebtoken";
 
-const createChat = async (req: Request, res: Response) => {
-  try {
-    const { participants } = req.body;
-    let result;
-    const isExistParticipantIds = await Chat.findOne({
-      participants: { $all: [...participants] },
+const createChat = catchAsync(async (req: Request, res: Response) => {
+    const chat = await ChatService.createChatToDB(req.body);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Create Chat Successfully',
+        data: chat,
     });
-    result = isExistParticipantIds;
-    if (!isExistParticipantIds) {
-      result = await Chat.create({ participants: participants });
-    }
+})
 
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(200).json(error);
-  }
-};
-
-const userChats = async (req: Request, res: Response) => {
-
-  try {
-    const chat = await Chat.find({
-      participants: { $in: [req.params.userId] },
-    }).populate("participants");
-
-
-    res.status(200).json(chat);
-  } catch (error) {
-    res.status(200).json(error);
-  }
-};
-
-const findChat = async (req: Request, res: Response) => {
-  try {
-    const chat = await Chat.findOne({
-      participants: { $all: [req.params.firstId, req.params.secondId] },
+const getChat = catchAsync(async (req: Request, res: Response) => {
+    const chatList = await ChatService.getChatFromDB(req.user as JwtPayload, req.query.search as string);
+  
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Chat Retrieve Successfully',
+        data: chatList
     });
+});
 
-    res.status(200).json(chat);
-  } catch (error) {
-    res.status(200).json(error);
-  }
-};
-
-export const ChatController = {
-  createChat,
-  userChats,
-  findChat,
+export const ChatController = { 
+    createChat, 
+    getChat
 };

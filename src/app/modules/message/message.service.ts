@@ -1,68 +1,45 @@
-import { StatusCodes } from 'http-status-codes';
-import ApiError from '../../../errors/ApiError';
+import mongoose from 'mongoose';
 import { IMessage } from './message.interface';
 import { Message } from './message.model';
+import { Chat } from '../chat/chat.model';
+import { JwtPayload } from 'jsonwebtoken';
+import QueryBuilder from '../../builder/QueryBuilder';
+import { checkMongooseIDValidation } from '../../../shared/checkMongooseIDValidation';
 
+const sendMessageToDB = async (payload: any): Promise<IMessage> => {
 
+  // save to DB
+  const response = await Message.create(payload);
 
-
-
-// get all Message
-const getAllMessages = async (chatId:string): Promise<IMessage[]> => {
-  const messages = Message.find({chatRoomId:chatId})
-  return messages
-}
-
-// get single Message
-const getSingleMessageFromDB = async (id: string
-): Promise<Partial<IMessage>> => {
-  const isExistMessage = await Message.findById(id)
-  if (!isExistMessage) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Message doesn't exist!");
+  //@ts-ignore
+  const io = global.io;
+  if (io && payload.chatId) {
+    // send message to specific chatId Room
+    io.emit(`getMessage::${payload?.chatId}`, response);
   }
 
-  return isExistMessage;
+  return response;
 };
 
+const getMessageFromDB = async (id: string, user: JwtPayload, query: Record<string, any>): Promise<{ messages: IMessage[], pagination: any, participant:any  }> => {
+  checkMongooseIDValidation(id, "Chat")
 
-// update Message
-const updateMessageToDB = async (
-  id: string,
-  payload: Partial<IMessage>
-): Promise<Partial<IMessage | null>> => {
-  const isExistMessage = await Message.findById(id);
-  if (!isExistMessage) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Message doesn't exist!");
-  }
+  const result = new QueryBuilder(
+    Message.find({ chatId: id }).sort({ createdAt: 1 }),
+    query
+  ).paginate();
+  const messages = await result.queryModel;
+  const pagination = await result.getPaginationInfo();
 
-   const updateDoc = await Message.findOneAndUpdate({ _id: id }, payload, {
-    new: true,
-  });
+  const participant = await Chat.findById(id).populate({
+    path: 'participants',
+    select: '-_id name profile',
+    match: {
+      _id: { $ne: new mongoose.Types.ObjectId(user.id) }
+    }
+  })
 
- 
-
-  return updateDoc;
-
+  return { messages, pagination, participant: participant?.participants[0] };
 };
 
-
-// delete Message
-const deleteMessage = async (
-  id: string,
-) => {
-  const isExistMessage = await Message.findById(id);
-  if (!isExistMessage) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Message doesn't exist!");
-  }
-
-
-  const deleteMessage = await Message.deleteOne({ _id: id });
-  return deleteMessage;
-};
-
-export const MessageService = {
-  getSingleMessageFromDB,
-  updateMessageToDB,
-  getAllMessages,
-  deleteMessage
-};
+export const MessageService = { sendMessageToDB, getMessageFromDB };

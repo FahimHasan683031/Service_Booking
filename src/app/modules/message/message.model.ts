@@ -1,16 +1,37 @@
-import { Schema, model } from "mongoose";
-import { IMessage } from "./message.interface";
+import { Schema, model } from 'mongoose';
+import { IMessage, MessageModel } from './message.interface';
+import { object } from 'zod';
+import { MESSAGE } from '../../../enums/message';
 
+const messageSchema = new Schema<IMessage, MessageModel>(
+  {
+    chatId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: 'Chat',
+    },
+    sender: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: 'User',
+    },
+    text: {
+      type: String,
+      required: false
+    },
+    image: {
+      type: String,
+      required: false
+    },
+    type: {
+      type: String,
+      enum: Object.values(MESSAGE),
+      default : MESSAGE.Text
+    }
+  },
+  {
+    timestamps: true,
+  }
+);
 
-const messageSchema = new Schema<IMessage>({
-  sender: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  message: { type: String, required: true },
-  chatRoomId: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now },
-});
-
-export const Message = model<IMessage>('Message', messageSchema);
-
-
-
-
+export const Message = model<IMessage, MessageModel>('Message', messageSchema);
